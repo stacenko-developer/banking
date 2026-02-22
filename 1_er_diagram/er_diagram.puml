@@ -1,0 +1,113 @@
+@startuml
+!theme cerulean
+
+title "Информация о клиентах и банковских продуктах"
+
+package "Клиенты" {
+
+  entity client {
+    * id: BIGINT <<PK>>
+    --
+    last_name: VARCHAR(100) <<NN>> "Фамилия"
+    first_name: VARCHAR(100) <<NN>> "Имя"
+    patronymic: VARCHAR(100) "Отчество"
+    birth_date: DATE <<NN>> "Дата рождения"
+    passport_series: VARCHAR(4) <<NN>> "Серия паспорта"
+    passport_number: VARCHAR(6) <<NN>> "Номер паспорта"
+    phone: VARCHAR(18) <<UNIQUE>> <<NN>> "Номер телефона"
+    email: VARCHAR(100) <<UNIQUE>> <<NN>> "Электронная почта"
+    --
+    <<UNIQUE>>(passport_series, passport_number)
+  }
+}
+
+package "Банковские продукты" {
+  entity product_type {
+    * id: BIGINT <<PK>>
+    --
+    name: VARCHAR(30) <<UNIQUE>> <<NN>>
+  }
+
+  entity currency {
+    * id: BIGINT <<PK>>
+    --
+    name: VARCHAR(4) <<UNIQUE>> <<NN>>
+    rate_to_rub: DECIMAL(5, 2) <<NN>>
+  }
+
+  entity product {
+    * id: BIGINT <<PK>>
+    --
+    opened_at: DATE <<NN>> "Дата открытия"
+    product_type_id: BIGINT <<FK>> <<NN>> "id типа счета"
+    currency_id: BIGINT <<FK>> <<NN>> "id валюты"
+    interest_rate: DECIMAL(4, 2) <<NN>> "Процентная ставка"
+    status_id: BIGINT <<FK>> <<NN>> "Статус"
+    client_id: BIGINT <<FK>> <<NN>> "id клиента"
+  }
+
+  entity status {
+    * id: BIGINT <<PK>>
+    --
+    name: VARCHAR(20) <<UNIQUE>> <<NN>>
+  }
+}
+
+package "Операции" {
+  entity operation_type {
+    * id: BIGINT <<PK>>
+    --
+    name: VARCHAR(30) <<UNIQUE>> <<NN>>
+  }
+
+  entity operation {
+    * id: BIGINT <<PK>>
+    --
+    created_at: TIMESTAMPTZ <<NN>>
+    amount: DECIMAL(12,2) <<NN>>
+    operation_type_id: BIGINT <<FK>> <<NN>>
+    product_id: BIGINT <<FK>> <<NN>>
+    balance_after_operation: DECIMAL(12,2) <<NN>>
+    --
+    <<UNIQUE>>(product_id, operation_type_id, created_at)
+  }
+}
+
+package "Аудит" {
+   entity interest_rate_history {
+    * id: BIGINT <<PK>>
+    --
+    product_type_id: BIGINT <<FK>> <<NN>>
+    interest_rate: DECIMAL(4, 2) <<NN>>
+    started_at: DATE <<NN>>
+    --
+    <<UNIQUE>>(product_type_id, started_at)
+  }
+
+  entity product_status_history {
+    * id: BIGINT <<PK>>
+    --
+    product_id: BIGINT <<FK>> <<NN>>
+    status_id: BIGINT <<FK>> <<NN>>
+    changed_at: TIMESTAMPTZ <<NN>>
+    --
+    <<UNIQUE>>(product_id, status_id, changed_at)
+  }
+}
+
+client::id ||--{ product::client_id : 1:N
+
+currency::id ||--{ product::currency_id : 1:N
+
+operation_type::id ||--{ operation::operation_type_id : 1:N
+
+product_type::id ||--{ product::product_type_id : 1:N
+product_type::id ||--{ interest_rate_history::product_type_id : 1:N
+
+product::id ||--{ operation::product_id : 1:N
+product::id ||--{ product_status_history::product_id : 1:N
+
+status::id ||--{ product_status_history::status_id : 1:N
+status::id ||--{ product::status_id : 1:N
+
+@enduml
